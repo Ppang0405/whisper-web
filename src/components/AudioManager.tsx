@@ -6,6 +6,8 @@ import AudioPlayer from "./AudioPlayer";
 import { TranscribeButton } from "./TranscribeButton";
 import Constants from "../utils/Constants";
 import { Transcriber } from "../hooks/useTranscriber";
+import { Summarizer } from "../hooks/useSummarizer";
+import { FactChecker } from "../hooks/useFactChecker";
 import Progress from "./Progress";
 import AudioRecorder from "./AudioRecorder";
 
@@ -129,7 +131,7 @@ export enum AudioSource {
     RECORDING = "RECORDING",
 }
 
-export function AudioManager(props: { transcriber: Transcriber }) {
+export function AudioManager(props: { transcriber: Transcriber; summarizer: Summarizer; factChecker: FactChecker }) {
     const [progress, setProgress] = useState<number | undefined>(undefined);
     const [audioData, setAudioData] = useState<
         | {
@@ -303,6 +305,8 @@ export function AudioManager(props: { transcriber: Transcriber }) {
                         <SettingsTile
                             className='absolute right-4'
                             transcriber={props.transcriber}
+                            summarizer={props.summarizer}
+                            factChecker={props.factChecker}
                             icon={<SettingsIcon />}
                         />
                     </div>
@@ -331,6 +335,8 @@ function SettingsTile(props: {
     icon: JSX.Element;
     className?: string;
     transcriber: Transcriber;
+    summarizer: Summarizer;
+    factChecker: FactChecker;
 }) {
     const [showModal, setShowModal] = useState(false);
 
@@ -354,6 +360,8 @@ function SettingsTile(props: {
                 onSubmit={onSubmit}
                 onClose={onClose}
                 transcriber={props.transcriber}
+                summarizer={props.summarizer}
+                factChecker={props.factChecker}
             />
         </div>
     );
@@ -364,6 +372,8 @@ function SettingsModal(props: {
     onSubmit: (url: string) => void;
     onClose: () => void;
     transcriber: Transcriber;
+    summarizer: Summarizer;
+    factChecker: FactChecker;
 }) {
     const names = Object.values(LANGUAGES).map(titleCase);
 
@@ -378,13 +388,22 @@ function SettingsModal(props: {
         'distil-whisper/distil-medium.en': [402],
         'distil-whisper/distil-large-v2': [767],
     };
+
+    const summarizationModels = {
+        'Xenova/bart-large-cnn': [1630, 1630],
+        'Xenova/t5-small': [242, 242],
+        'Xenova/pegasus-xsum': [568, 568],
+        'Xenova/distilbart-cnn-12-6': [326, 326],
+    };
     return (
         <Modal
             show={props.show}
             title={"Settings"}
             content={
                 <>
-                    <label>Select the model to use.</label>
+                    <div className="mb-6">
+                        <h3 className="text-lg font-medium mb-3">Transcription Settings</h3>
+                        <label>Select the model to use.</label>
                     <select
                         className='mt-1 mb-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500'
                         defaultValue={props.transcriber.model}
@@ -482,6 +501,151 @@ function SettingsModal(props: {
                             </select>
                         </>
                     )}
+                    </div>
+                    
+                    <div className="mb-6">
+                        <h3 className="text-lg font-medium mb-3">Summarization Settings</h3>
+                        <label>Select the summarization model to use.</label>
+                        <select
+                            className='mt-1 mb-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500'
+                            defaultValue={props.summarizer.model}
+                            onChange={(e) => {
+                                props.summarizer.setModel(e.target.value);
+                            }}
+                        >
+                            {Object.keys(summarizationModels).map((key) => (
+                                <option key={key} value={key}>{`${key} (${
+                                    // @ts-ignore
+                                    summarizationModels[key][
+                                        props.summarizer.quantized ? 0 : 1
+                                    ]
+                                }MB)`}</option>
+                            ))}
+                        </select>
+                        <div className='flex justify-between items-center mb-3 px-1'>
+                            <div className='flex'>
+                                <input
+                                    id='quantize-summarizer'
+                                    type='checkbox'
+                                    checked={props.summarizer.quantized}
+                                    onChange={(e) => {
+                                        props.summarizer.setQuantized(
+                                            e.target.checked,
+                                        );
+                                    }}
+                                ></input>
+                                <label htmlFor={"quantize-summarizer"} className='ms-1'>
+                                    Quantized
+                                </label>
+                            </div>
+                        </div>
+                        <div className='grid grid-cols-2 gap-3'>
+                            <div>
+                                <label htmlFor="maxLength" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Max Length
+                                </label>
+                                <input
+                                    type="number"
+                                    id="maxLength"
+                                    min="10"
+                                    max="500"
+                                    value={props.summarizer.maxLength}
+                                    onChange={(e) => {
+                                        props.summarizer.setMaxLength(parseInt(e.target.value) || 150);
+                                    }}
+                                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="minLength" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Min Length
+                                </label>
+                                <input
+                                    type="number"
+                                    id="minLength"
+                                    min="5"
+                                    max="200"
+                                    value={props.summarizer.minLength}
+                                    onChange={(e) => {
+                                        props.summarizer.setMinLength(parseInt(e.target.value) || 40);
+                                    }}
+                                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div className="mb-6">
+                        <h3 className="text-lg font-medium mb-3">Fact-Checking Settings</h3>
+                        <div className="mb-4">
+                            <label htmlFor="openaiApiKey" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                OpenAI API Key
+                            </label>
+                            <input
+                                type="password"
+                                id="openaiApiKey"
+                                placeholder="sk-..."
+                                value={props.factChecker.config.openaiApiKey}
+                                onChange={(e) => {
+                                    props.factChecker.setOpenAIApiKey(e.target.value);
+                                }}
+                                className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                            />
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                Required for fact-checking functionality. Your key is stored locally and never sent to our servers.
+                            </p>
+                        </div>
+                        
+                        <label>Select the fact-checking model to use.</label>
+                        <select
+                            className='mt-1 mb-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500'
+                            value={props.factChecker.config.model}
+                            onChange={(e) => {
+                                props.factChecker.setModel(e.target.value);
+                            }}
+                            disabled={!props.factChecker.config.openaiApiKey}
+                        >
+                            {Object.keys(Constants.FACT_CHECKING_MODELS).map((key) => (
+                                <option key={key} value={key}>{Constants.FACT_CHECKING_MODELS[key as keyof typeof Constants.FACT_CHECKING_MODELS]}</option>
+                            ))}
+                        </select>
+                        
+                        <div className="mt-3">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Strictness Level
+                            </label>
+                            <select
+                                className='bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500'
+                                value={props.factChecker.config.strictness}
+                                onChange={(e) => {
+                                    props.factChecker.setStrictness(e.target.value as 'low' | 'medium' | 'high');
+                                }}
+                                disabled={!props.factChecker.config.openaiApiKey}
+                            >
+                                <option value="low">Low - Lenient fact-checking</option>
+                                <option value="medium">Medium - Balanced approach</option>
+                                <option value="high">High - Strict verification</option>
+                            </select>
+                        </div>
+                        
+                        <div className='flex items-center mt-3 px-1'>
+                            <input
+                                id='enable-source-verification'
+                                type='checkbox'
+                                checked={props.factChecker.config.enableSourceVerification}
+                                onChange={(e) => {
+                                    props.factChecker.setEnableSourceVerification(e.target.checked);
+                                }}
+                                disabled={!props.factChecker.config.openaiApiKey}
+                            ></input>
+                            <label htmlFor={"enable-source-verification"} className='ms-1 text-sm text-gray-700 dark:text-gray-300'>
+                                Enable Source Verification (Advanced)
+                            </label>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">
+                            When enabled, the system will attempt to find and verify claims against external sources.
+                        </p>
+                    </div>
                 </>
             }
             onClose={props.onClose}

@@ -31,4 +31,28 @@ export default {
     DEFAULT_LANGUAGE: "english",
     DEFAULT_QUANTIZED: isMobileOrTablet,
     DEFAULT_MULTILINGUAL: false,
+    SUMMARIZATION_MODELS: {
+        'Xenova/bart-large-cnn': 'BART Large CNN',
+        'Xenova/t5-small': 'T5 Small',
+        'Xenova/pegasus-xsum': 'Pegasus XSum',
+        'Xenova/distilbart-cnn-12-6': 'DistilBART CNN'
+    },
+    DEFAULT_SUMMARIZATION_MODEL: 'Xenova/bart-large-cnn',
+    DEFAULT_SUMMARIZATION_MAX_LENGTH: 150,
+    DEFAULT_SUMMARIZATION_MIN_LENGTH: 40,
+    DEFAULT_SUMMARIZATION_QUANTIZED: true,
+    FACT_CHECKING_MODELS: {
+        'gpt-4-turbo-preview': 'GPT-4 Turbo (Recommended)',
+        'gpt-4': 'GPT-4',
+        'gpt-3.5-turbo': 'GPT-3.5 Turbo'
+    },
+    DEFAULT_FACT_CHECKING_MODEL: 'gpt-4-turbo-preview',
+    DEFAULT_FACT_CHECKING_STRICTNESS: 'medium' as 'low' | 'medium' | 'high',
+    DEFAULT_ENABLE_SOURCE_VERIFICATION: false,
+    NLI_MODELS: {
+        'Xenova/bart-large-mnli': 'BART Large MNLI',
+        'Xenova/roberta-large-mnli': 'RoBERTa Large MNLI',
+        'Xenova/deberta-v3-base-mnli': 'DeBERTa V3 Base MNLI'
+    },
+    DEFAULT_NLI_MODEL: 'Xenova/bart-large-mnli',
 };
