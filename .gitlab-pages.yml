@@ -1,0 +1,50 @@
+# GitLab Pages Configuration
+
+This file contains configuration for GitLab Pages deployment.
+
+## Custom Domain Setup
+
+To set up a custom domain for your GitLab Pages site:
+
+1. **DNS Configuration:**
+   ```
+   ; A record (if using root domain)
+   @   IN  A   192.0.2.1
+   ; or AAAA record for IPv6
+   @   IN  AAAA 2001:db8::1
+   
+   ; CNAME record (if using subdomain)
+   www IN  CNAME  yournamespace.gitlab.io.
+   ```
+
+2. **GitLab Pages Settings:**
+   - Go to your GitLab project → Settings → Pages
+   - Add your custom domain
+   - GitLab will automatically provision SSL certificates
+
+3. **Domain Verification:**
+   - Add the DNS TXT record provided by GitLab
+   - Wait for DNS propagation (usually 24-48 hours)
+
+## Environment Variables
+
+The following environment variables are available in the CI/CD pipeline:
+
+- `$CI_PAGES_URL`: The URL of your GitLab Pages site
+- `$CI_PROJECT_NAME`: Your project name
+- `$CI_PROJECT_NAMESPACE`: Your project namespace
+- `$CI_COMMIT_TAG`: The tag that triggered the build
+
+## Deployment URLs
+
+- **Production (tags):** `https://yournamespace.gitlab.io/yourproject/`
+- **Staging (main branch):** `https://yournamespace.gitlab.io/-/yourproject/-/jobs/$CI_JOB_ID/artifacts/public/index.html`
+
+## Release Tag Pattern
+
+The deployment is triggered by tags matching the pattern: `vX.Y.Z`
+- `v1.0` ✅
+- `v1.1.0` ✅
+- `v2.0.1` ✅
+- `v1.0-beta` ❌
+- `latest` ❌

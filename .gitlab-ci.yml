@@ -1,0 +1,80 @@
+# GitLab CI/CD configuration for Whisper Web
+# Deploys to GitLab Pages when release tags are created
+
+# Use the official Node.js image
+image: node:18-alpine
+
+# Cache node_modules to speed up builds
+cache:
+  paths:
+    - node_modules/
+
+# Define stages
+stages:
+  - build
+  - deploy
+
+# Build job - runs on all branches and tags
+build:
+  stage: build
+  script:
+    # Install dependencies
+    - npm ci
+    # Build the application
+    - npm run build
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 1 week
+  only:
+    - main
+    - develop
+    - tags
+
+# Deploy job - runs only on release tags (v1.0, v1.1.0, etc.)
+pages:
+  stage: deploy
+  script:
+    # Install dependencies
+    - npm ci
+    # Build the application
+    - npm run build
+    # Move dist to public for GitLab Pages
+    - mv dist public
+  artifacts:
+    paths:
+      - public/
+    expire_in: 1 week
+  environment:
+    name: production
+    url: $CI_PAGES_URL
+  only:
+    # Deploy only on tags that match version pattern (v1.0, v1.1.0, v2.0.1, etc.)
+    - /^v\d+\.\d+(\.\d+)?$/
+  except:
+    - branches
+    - main
+    - develop
+
+# Optional: Deploy to staging on main branch
+pages:staging:
+  stage: deploy
+  script:
+    # Install dependencies
+    - npm ci
+    # Build the application
+    - npm run build
+    # Move dist to public for GitLab Pages
+    - mv dist public
+  artifacts:
+    paths:
+      - public/
+    expire_in: 1 week
+  environment:
+    name: staging
+    url: $CI_PAGES_URL
+  only:
+    - main
+  when: manual
+  except:
+    - tags

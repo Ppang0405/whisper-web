@@ -2,7 +2,17 @@
   "permissions": {
     "allow": [
       "WebSearch",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "WebFetch(domain:vercel.com)",
+      "WebFetch(domain:netlify.com)",
+      "WebFetch(domain:pages.cloudflare.com)",
+      "WebFetch(domain:pages.github.com)",
+      "WebFetch(domain:render.com)",
+      "WebFetch(domain:railway.app)",
+      "WebFetch(domain:railway.com)",
+      "WebFetch(domain:about.gitlab.com)",
+      "WebFetch(domain:docs.gitlab.com)",
+      "WebFetch(domain:gitlab.com)"
     ],
     "deny": [],
     "ask": []
