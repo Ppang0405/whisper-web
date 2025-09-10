@@ -12,3 +12,23 @@ export function formatAudioTimestamp(time: number) {
         seconds,
     )}`;
 }
+
+export function formatSRTTime(time: number) {
+    const hours = (time / (60 * 60)) | 0;
+    time -= hours * (60 * 60);
+    const minutes = (time / 60) | 0;
+    time -= minutes * 60;
+    const seconds = time | 0;
+    const milliseconds = Math.round((time - seconds) * 1000);
+    return `${padTime(hours)}:${padTime(minutes)}:${padTime(seconds)},${String(milliseconds).padStart(3, "0")}`;
+}
+
+export function formatVTTTime(time: number) {
+    const hours = (time / (60 * 60)) | 0;
+    time -= hours * (60 * 60);
+    const minutes = (time / 60) | 0;
+    time -= minutes * 60;
+    const seconds = time | 0;
+    const milliseconds = Math.round((time - seconds) * 1000);
+    return `${padTime(hours)}:${padTime(minutes)}:${padTime(seconds)}.${String(milliseconds).padStart(3, "0")}`;
+}

@@ -1,7 +1,7 @@
 import { useRef, useEffect } from "react";
 
 import { TranscriberData } from "../hooks/useTranscriber";
-import { formatAudioTimestamp } from "../utils/AudioUtils";
+import { formatAudioTimestamp, formatSRTTime, formatVTTTime } from "../utils/AudioUtils";
 
 interface Props {
     transcribedData: TranscriberData | undefined;
@@ -37,6 +37,28 @@ export default function Transcript({ transcribedData }: Props) {
 
         const blob = new Blob([jsonData], { type: "application/json" });
         saveBlob(blob, "transcript.json");
+    };
+    const exportSRT = () => {
+        let chunks = transcribedData?.chunks ?? [];
+        let srtContent = chunks.map((chunk, index) => {
+            const startTime = formatSRTTime(chunk.timestamp[0]);
+            const endTime = chunk.timestamp[1] ? formatSRTTime(chunk.timestamp[1]) : formatSRTTime(chunk.timestamp[0] + 1);
+            return `${index + 1}\n${startTime} --> ${endTime}\n${chunk.text.trim()}`;
+        }).join("\n\n");
+
+        const blob = new Blob([srtContent], { type: "text/plain" });
+        saveBlob(blob, "transcript.srt");
+    };
+    const exportVTT = () => {
+        let chunks = transcribedData?.chunks ?? [];
+        let vttContent = "WEBVTT\n\n" + chunks.map((chunk) => {
+            const startTime = formatVTTTime(chunk.timestamp[0]);
+            const endTime = chunk.timestamp[1] ? formatVTTTime(chunk.timestamp[1]) : formatVTTTime(chunk.timestamp[0] + 1);
+            return `${startTime} --> ${endTime}\n${chunk.text.trim()}`;
+        }).join("\n\n");
+
+        const blob = new Blob([vttContent], { type: "text/vtt" });
+        saveBlob(blob, "transcript.vtt");
     };
 
     // Scroll to the bottom when the component updates
@@ -85,6 +107,18 @@ export default function Transcript({ transcribedData }: Props) {
                         className='text-white bg-green-500 hover:bg-green-600 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-4 py-2 text-center mr-2 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800 inline-flex items-center'
                     >
                         Export JSON
+                    </button>
+                    <button
+                        onClick={exportSRT}
+                        className='text-white bg-green-500 hover:bg-green-600 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-4 py-2 text-center mr-2 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800 inline-flex items-center'
+                    >
+                        Export SRT
+                    </button>
+                    <button
+                        onClick={exportVTT}
+                        className='text-white bg-green-500 hover:bg-green-600 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-4 py-2 text-center mr-2 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800 inline-flex items-center'
+                    >
+                        Export VTT
                     </button>
                 </div>
             )}
